@@ -1,19 +1,17 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Thu Nov 14 2019
-@author: S. Bilavarn
+Created on Sept 28 2025
+@authors: Viale J / Cougouluegne T
 """
 
 # Imports
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Flatten
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten
+from tensorflow.keras.datasets import mnist
 from keras.optimizers import SGD
-from keras.layers.convolutional import Conv2D
-from keras.layers.convolutional import MaxPooling2D
-from keras.utils import np_utils 
-from keras.datasets import mnist
+from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.utils import to_categorical
 
 # load data
 (trainData, trainLabels), (testData, testLabels) = mnist.load_data()
@@ -42,7 +40,7 @@ model.add(Flatten())
 model.add(Dense(400,activation='relu'))
 model.add(Dense(num_classes, activation='softmax'))
 
-sgd = SGD(lr=0.01)
+sgd = SGD(learning_rate=0.01, momentum=0.0, nesterov=False)
 model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
 print(model.summary())
@@ -54,7 +52,7 @@ model_json = model.to_json()
 with open('model.json', 'w') as json_file:
     json_file.write(model_json)
 
-model.save_weights('lenet_weights.hdf5')    
+model.save_weights('lenet_weights.weights.h5')    
 
 scores = model.evaluate(testData,testLabels,verbose=0)
 print("Accuracy: %.2f%%" % (scores[1]*100))
