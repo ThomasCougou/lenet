@@ -15,7 +15,6 @@
 // How will channels (RGB) effect convolutional neural network?
 // https://www.researchgate.net/post/How_will_channels_RGB_effect_convolutional_neural_network
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +25,9 @@
 //#include "sds_lib.h"    
 
 #include "lenet_cnn_float.h"
+
+/* === Ajout minimal pour l'accuracy : ReLU === */
+static inline float relu(float x){ return x > 0.0f ? x : 0.0f; }
 
 // Top Level HLS function
 void lenet_cnn(	float 	input[IMG_DEPTH][IMG_HEIGHT][IMG_WIDTH], 							// IN
@@ -47,6 +49,13 @@ void lenet_cnn(	float 	input[IMG_DEPTH][IMG_HEIGHT][IMG_WIDTH], 							// IN
   short 	k, y, x; 
 
   Conv1_28x28x1_5x5x20_1_0(input, conv1_kernel, conv1_bias, conv1_output); 
+
+  /* === Ajout minimal : ReLU après Conv1 === */
+  for (int c=0;c<CONV1_NBOUTPUT;c++)
+    for (int y1=0;y1<CONV1_HEIGHT;y1++)
+      for (int x1=0;x1<CONV1_WIDTH;x1++)
+        conv1_output[c][y1][x1] = relu(conv1_output[c][y1][x1]);
+
 /*  printf("\nCONV1_WIDTH / CONV1_HEIGHT: %d / %d\n", CONV1_WIDTH, CONV1_HEIGHT); 
   WritePgmFile(output_filename, (float *)CONV1_OUTPUT[0], CONV1_WIDTH, CONV1_HEIGHT); 
   printf("\nConv1 output[0]: \n"); 
@@ -69,6 +78,13 @@ void lenet_cnn(	float 	input[IMG_DEPTH][IMG_HEIGHT][IMG_WIDTH], 							// IN
 */
 
   Conv2_12x12x20_5x5x40_1_0(pool1_output, conv2_kernel, conv2_bias, conv2_output); 
+
+  /* === Ajout minimal : ReLU après Conv2 === */
+  for (int c=0;c<CONV2_NBOUTPUT;c++)
+    for (int y2=0;y2<CONV2_HEIGHT;y2++)
+      for (int x2=0;x2<CONV2_WIDTH;x2++)
+        conv2_output[c][y2][x2] = relu(conv2_output[c][y2][x2]);
+
 /*  printf("\nCONV2_WIDTH / CONV2_HEIGHT: %d / %d\n", CONV2_WIDTH, CONV2_HEIGHT); 
   WritePgmFile(output_filename, (float *)CONV2_OUTPUT[0], CONV2_WIDTH, CONV2_HEIGHT); 
   printf("\nConv2 output[0]: \n");
@@ -91,16 +107,20 @@ void lenet_cnn(	float 	input[IMG_DEPTH][IMG_HEIGHT][IMG_WIDTH], 							// IN
 */
 
   Fc1_40_400(pool2_output, fc1_kernel, fc1_bias, fc1_output); 
-/*  printf("\n\nFc1 output[0..%d]: \n", FC1_NBOUTPUT-1);
+
+  /* === Ajout minimal : ReLU après Fc1 === */
+  for (int i=0;i<FC1_NBOUTPUT;i++)
+    fc1_output[i] = relu(fc1_output[i]);
+
+  printf("\n\nFc1 output[0..%d]: \n", FC1_NBOUTPUT-1);
   for (k = 0; k < FC1_NBOUTPUT; k++)
     printf("%.2f ", fc1_output[k]); 
-*/
 
   Fc2_400_10(fc1_output, fc2_kernel, fc2_bias, output); 
-/*  printf("\n\nFc2 output[0..%d]: \n", FC2_NBOUTPUT-1);
+  printf("\n\nFc2 output[0..%d]: \n", FC2_NBOUTPUT-1);
   for (k = 0; k < FC2_NBOUTPUT; k++)
     printf("%.2f ", output[k]); 
-*/
+
 }
 
 
@@ -125,15 +145,16 @@ float			SOFTMAX_OUTPUT[FC2_NBOUTPUT];
 
 void main() {
   short 	x, y, z, k, m; 
-  char 		*hdf5_filename = 		"lenet_weights.hdf5"; 
-  char 		*conv1_weights = 		"conv2d_1/conv2d_1/kernel:0"; 
-  char 		*conv1_bias = 			"conv2d_1/conv2d_1/bias:0"; 
-  char 		*conv2_weights = 		"conv2d_2/conv2d_2/kernel:0"; 
-  char 		*conv2_bias = 			"conv2d_2/conv2d_2/bias:0"; 
-  char* 	fc1_weights = 			"dense_1/dense_1/kernel:0"; 
-  char* 	fc1_bias = 				"dense_1/dense_1/bias:0"; 
-  char* 	fc2_weights = 			"dense_2/dense_2/kernel:0"; 
-  char* 	fc2_bias = 				"dense_2/dense_2/bias:0"; 
+  char 		*hdf5_filename = 		"lenet_weights.weights.h5";   /* === nom de poids mis à jour === */
+  /* === chemins HDF5 mis à jour (d'après h5ls) === */
+  char 		*conv1_weights = 		"/layers/conv2d/vars/0"; 
+  char 		*conv1_bias = 			"/layers/conv2d/vars/1"; 
+  char 		*conv2_weights = 		"/layers/conv2d_1/vars/0"; 
+  char 		*conv2_bias = 			"/layers/conv2d_1/vars/1"; 
+  char* 	fc1_weights = 			"/layers/dense/vars/0"; 
+  char* 	fc1_bias = 				"/layers/dense/vars/1"; 
+  char* 	fc2_weights = 			"/layers/dense_1/vars/0"; 
+  char* 	fc2_bias = 				"/layers/dense_1/vars/1"; 
   char* 	test_labels_filename = 	"mnist/t10k-labels-idx1-ubyte"; 
 //  char* 	test_labels_filename = 		"mnist/train-labels-idx1-ubyte"; 
 //  char* 	output_filename = 		"output.pgm"; 
@@ -163,14 +184,14 @@ void main() {
 //WriteWeights("temp.txt", CONV1_KERNEL); 
 
   printf("\nOpening labels file \n"); 
-  label_file = fopen( test_labels_filename, "r" );
+  /* === lecture binaire robuste === */
+  label_file = fopen( test_labels_filename, "rb" );
   if (!label_file) {
     printf("Error: Unable to open file %s.\n", test_labels_filename);
     exit(1);
   }
 
-  for (k = 0; k < 8; k++) // Skip 8 first header bytes
-    ret = fscanf(label_file, "%c", &label); 
+  for (k = 0; k < 8; k++) (void)fgetc(label_file); // Skip 8 first header bytes
   
   printf("\nProcessing \n");
   m = 0; 		        // test image counter
@@ -187,8 +208,10 @@ void main() {
   while (1) { 
 //  for (x = 0; x < 1; x++) {
 
-    ret = fscanf(label_file, "%c", &label); 
-    if (feof(label_file)) break;
+    /* === remplace fscanf par fgetc en binaire === */
+    int lab = fgetc(label_file);
+    if (lab == EOF) break;
+    label = (unsigned char)lab;
 
     strcpy(img_filename, "mnist/t10k-images-idx3-ubyte[");
 //    strcpy(img_filename, "mnist/train-images-idx3-ubyte[");
@@ -241,7 +264,6 @@ void main() {
       }
     }
 
-
 /**/    printf("\n\nPredicted: %d \t Actual: %d\n", labels_legend[number], label); 
     if (labels_legend[number] != label) error = error + 1; 
 
@@ -256,7 +278,7 @@ void main() {
   } // END MAIN TEST LOOP
   gettimeofday(&end, NULL); 
 
-  tdiff = (double)(end.tv_sec-start.tv_sec); 
+  tdiff = (double)(end.tv_sec-start.tv_sec) + (double)(end.tv_usec-start.tv_usec)/1000000.0; 
   printf("TOTAL PROCESSING TIME (gettimeofday): %f s\n", tdiff); 
 
   printf("\n\nErrors : %d / %d", error, m); 
@@ -269,5 +291,3 @@ void main() {
   fclose(label_file); 
 
 }
-
-

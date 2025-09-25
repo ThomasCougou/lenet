@@ -1,26 +1,32 @@
-CC=gcc
+CC = gcc
+CFLAGS = -I/usr/include/hdf5/serial/ -O3
+LDFLAGS = -lhdf5_serial -lm
 
-IDIR = /usr/include/hdf5/serial/
-CFLAGS = -I$(IDIR) -O3
-LIBS = -lhdf5_serial -lm
+OBJS = lenet_cnn_float.o fc.o conv.o pool.o utils.o softmax.o
 
-lenet_cnn_float: lenet_cnn_float.o fc.o pool.o conv.o utils.o
-	$(CC) -o lenet_cnn_float lenet_cnn_float.o fc.o pool.o conv.o utils.o $(LIBS)
+all: lenet_cnn_float
 
-lenet_cnn_float.o: lenet_cnn_float.c 
-	$(CC) -c lenet_cnn_float.c $(CFLAGS)
+lenet_cnn_float: $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
-#fc.o: fc.c 
-#	$(CC) -c fc.c $(CFLAGS)
+lenet_cnn_float.o: lenet_cnn_float.c lenet_cnn_float.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
-#pool.o: pool.c 
-#	$(CC) -c pool.c $(CFLAGS)
+fc.o: fc.c lenet_cnn_float.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
-#conv.o: conv.c 
-#	$(CC) -c conv.c $(CFLAGS)
 
-utils.o: utils.c 
-	$(CC) -c utils.c $(CFLAGS)
-	
-clean: 
-	rm -r lenet_cnn_float.o utils.o lenet_cnn_float
+#conv.o: conv.c lenet_cnn_float.h
+#	$(CC) $(CFLAGS) -c $< -o $@
+
+#pool.o: pool.c lenet_cnn_float.h
+#	$(CC) $(CFLAGS) -c $< -o $@
+
+utils.o: utils.c lenet_cnn_float.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+softmax.o: softmax.c lenet_cnn_float.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) lenet_cnn_float
