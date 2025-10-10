@@ -56,26 +56,7 @@ void lenet_cnn(	float 	input[IMG_DEPTH][IMG_HEIGHT][IMG_WIDTH], 							// IN
       for (int x1=0;x1<CONV1_WIDTH;x1++)
         conv1_output[c][y1][x1] = relu(conv1_output[c][y1][x1]);
 
-/*  printf("\nCONV1_WIDTH / CONV1_HEIGHT: %d / %d\n", CONV1_WIDTH, CONV1_HEIGHT); 
-  WritePgmFile(output_filename, (float *)CONV1_OUTPUT[0], CONV1_WIDTH, CONV1_HEIGHT); 
-  printf("\nConv1 output[0]: \n"); 
-  for (y=0; y<CONV1_HEIGHT; y++) {
-    for (x=0; x<CONV1_WIDTH; x++) 
-      printf("%.2f ", conv1_output[0][y][x]); 
-    printf("\n"); 
-  }
-*/
-
   Pool1_24x24x20_2x2x20_2_0(conv1_output, pool1_output); 
-/*  printf("\nPOOL1_WIDTH / POOL1_HEIGHT: %d / %d\n", POOL1_WIDTH, POOL1_HEIGHT); 
-  WritePgmFile(output_filename, (float *)POOL1_OUTPUT[0], POOL1_WIDTH, POOL1_HEIGHT); 
-  printf("\nPool1 output[0]: \n"); 
-  for (y=0; y<POOL1_HEIGHT; y++) {
-    for (x=0; x<POOL1_WIDTH; x++) 
-      printf("%.2f ", pool1_output[0][y][x]); 
-    printf("\n"); 
-  }
-*/
 
   Conv2_12x12x20_5x5x40_1_0(pool1_output, conv2_kernel, conv2_bias, conv2_output); 
 
@@ -85,26 +66,7 @@ void lenet_cnn(	float 	input[IMG_DEPTH][IMG_HEIGHT][IMG_WIDTH], 							// IN
       for (int x2=0;x2<CONV2_WIDTH;x2++)
         conv2_output[c][y2][x2] = relu(conv2_output[c][y2][x2]);
 
-/*  printf("\nCONV2_WIDTH / CONV2_HEIGHT: %d / %d\n", CONV2_WIDTH, CONV2_HEIGHT); 
-  WritePgmFile(output_filename, (float *)CONV2_OUTPUT[0], CONV2_WIDTH, CONV2_HEIGHT); 
-  printf("\nConv2 output[0]: \n");
-  for (y=0; y<CONV2_HEIGHT; y++) {
-    for (x=0; x<CONV2_WIDTH; x++) 
-      printf("%.2f ", conv2_output[0][y][x]); 
-    printf("\n"); 
-  }
-*/
-
   Pool2_8x8x40_2x2x40_2_0(conv2_output, pool2_output); 
-/*  printf("\nPOOL2_WIDTH / POOL2_HEIGHT: %d / %d\n", POOL2_WIDTH, POOL2_HEIGHT); 
-  WritePgmFile(output_filename, (float *)POOL2_OUTPUT[15], POOL2_WIDTH, POOL2_HEIGHT); 
-  printf("\nPool2 output[0]: \n"); 
-  for (y=0; y<POOL2_HEIGHT; y++) {
-    for (x=0; x<POOL2_WIDTH; x++) 
-      printf("%.2f ", pool2_output[0][y][x]); 
-    printf("\n"); 
-  }
-*/
 
   Fc1_40_400(pool2_output, fc1_kernel, fc1_bias, fc1_output); 
 
@@ -112,15 +74,19 @@ void lenet_cnn(	float 	input[IMG_DEPTH][IMG_HEIGHT][IMG_WIDTH], 							// IN
   for (int i=0;i<FC1_NBOUTPUT;i++)
     fc1_output[i] = relu(fc1_output[i]);
 
+  /* (logs Fc1/Fc2 désactivés)
   printf("\n\nFc1 output[0..%d]: \n", FC1_NBOUTPUT-1);
   for (k = 0; k < FC1_NBOUTPUT; k++)
-    printf("%.2f ", fc1_output[k]); 
+    printf("%.2f ", fc1_output[k]);
+  */
 
   Fc2_400_10(fc1_output, fc2_kernel, fc2_bias, output); 
+
+  /* (logs Fc1/Fc2 désactivés)
   printf("\n\nFc2 output[0..%d]: \n", FC2_NBOUTPUT-1);
   for (k = 0; k < FC2_NBOUTPUT; k++)
     printf("%.2f ", output[k]); 
-
+  */
 }
 
 
@@ -148,15 +114,15 @@ void main() {
   char 		*hdf5_filename = 		"lenet_weights.weights.h5";   /* === nom de poids mis à jour === */
   /* === chemins HDF5 mis à jour (d'après h5ls) === */
   char 		*conv1_weights = 		"/layers/conv2d/vars/0"; 
-  char 		*conv1_bias = 			"/layers/conv2d/vars/1"; 
+  char 		*conv1_bias   = 		"/layers/conv2d/vars/1"; 
   char 		*conv2_weights = 		"/layers/conv2d_1/vars/0"; 
-  char 		*conv2_bias = 			"/layers/conv2d_1/vars/1"; 
-  char* 	fc1_weights = 			"/layers/dense/vars/0"; 
-  char* 	fc1_bias = 				"/layers/dense/vars/1"; 
-  char* 	fc2_weights = 			"/layers/dense_1/vars/0"; 
-  char* 	fc2_bias = 				"/layers/dense_1/vars/1"; 
+  char 		*conv2_bias   = 		"/layers/conv2d_1/vars/1"; 
+  char* 	fc1_weights   = 		"/layers/dense/vars/0"; 
+  char* 	fc1_bias      = 		"/layers/dense/vars/1"; 
+  char* 	fc2_weights   = 		"/layers/dense_1/vars/0"; 
+  char* 	fc2_bias      = 		"/layers/dense_1/vars/1"; 
   char* 	test_labels_filename = 	"mnist/t10k-labels-idx1-ubyte"; 
-//  char* 	test_labels_filename = 		"mnist/train-labels-idx1-ubyte"; 
+//  char* 	test_labels_filename = 	"mnist/train-labels-idx1-ubyte"; 
 //  char* 	output_filename = 		"output.pgm"; 
   FILE* 	label_file;
   int ret; 
@@ -174,13 +140,13 @@ void main() {
 
   printf("\nReading weights \n"); 
   ReadConv1Weights(hdf5_filename, conv1_weights, CONV1_KERNEL);
-  ReadConv1Bias(hdf5_filename, conv1_bias, CONV1_BIAS); 
+  ReadConv1Bias   (hdf5_filename, conv1_bias,    CONV1_BIAS); 
   ReadConv2Weights(hdf5_filename, conv2_weights, CONV2_KERNEL);
-  ReadConv2Bias(hdf5_filename, conv2_bias, CONV2_BIAS); 
-  ReadFc1Weights(hdf5_filename, fc1_weights, FC1_KERNEL);
-  ReadFc1Bias(hdf5_filename, fc1_bias, FC1_BIAS);
-  ReadFc2Weights(hdf5_filename, fc2_weights, FC2_KERNEL);
-  ReadFc2Bias(hdf5_filename, fc2_bias, FC2_BIAS);
+  ReadConv2Bias   (hdf5_filename, conv2_bias,    CONV2_BIAS); 
+  ReadFc1Weights  (hdf5_filename, fc1_weights,   FC1_KERNEL);
+  ReadFc1Bias     (hdf5_filename, fc1_bias,      FC1_BIAS);
+  ReadFc2Weights  (hdf5_filename, fc2_weights,   FC2_KERNEL);
+  ReadFc2Bias     (hdf5_filename, fc2_bias,      FC2_BIAS);
 //WriteWeights("temp.txt", CONV1_KERNEL); 
 
   printf("\nOpening labels file \n"); 
@@ -206,7 +172,6 @@ void main() {
   // MAIN TEST LOOP
   gettimeofday(&start, NULL); 
   while (1) { 
-//  for (x = 0; x < 1; x++) {
 
     /* === remplace fscanf par fgetc en binaire === */
     int lab = fgetc(label_file);
@@ -223,19 +188,14 @@ void main() {
     strcat(img_filename, img_count);
     strcat(img_filename, "].pgm");
 
-/**/    printf("\033[%d;%dH%s\n", 7, 0, img_filename);
-//    printf("%s\n", img_filename);
+    /* clear screen désactivé pour mode silencieux */
+    // printf("\e[1;1H\e[2J");
+
+    /* Affichages per-image désactivés (mode silencieux) */
+    // printf("\033[%d;%dH%s\n", 7, 0, img_filename);
 
     ReadPgmFile(img_filename, (unsigned char *)REF_IMG); 
-
     NormalizeImg((unsigned char *)REF_IMG, (float *)INPUT_NORM, IMG_WIDTH, IMG_WIDTH); 
-/*  for (z = 0; z < IMG_DEPTH; z++)
-    for (y=0; y<IMG_HEIGHT; y++) {
-      for (x=0; x<IMG_WIDTH; x++)  
-        printf("%.2f ", INPUT_NORM[z][y][x]);
-      printf("\n");
-    }
-*/
 
 ////    xilinx_start = sds_clock_counter();
 
@@ -253,28 +213,38 @@ void main() {
 ////    xilinx_end = sds_clock_counter(); 
 
     Softmax(FC2_OUTPUT, SOFTMAX_OUTPUT); 
-/**/    printf("\n\nSoftmax output: \n");
-    max = 0; 
-    number = 0; 
+
+    /* Affichages Softmax prédiction désactivés */
+    // printf("\n\nSoftmax output: \n");
+    // max = 0; 
+    // number = 0; 
+    // for (k = 0; k < FC2_NBOUTPUT; k++) {
+    //   printf("%.2f%% ", SOFTMAX_OUTPUT[k]*100); 
+    //   if (SOFTMAX_OUTPUT[k] > max) {
+    //     max = SOFTMAX_OUTPUT[k]; 
+    //     number = k; 
+    //   }
+    // }
+
+    // printf("\n\nPredicted: %d \t Actual: %d\n", labels_legend[number], label); 
+
+    /* conserve la mesure d'accuracy sans afficher */
+    max = 0.0f;
+    number = 0;
     for (k = 0; k < FC2_NBOUTPUT; k++) {
-/**/      printf("%.2f%% ", SOFTMAX_OUTPUT[k]*100); 
       if (SOFTMAX_OUTPUT[k] > max) {
-        max = SOFTMAX_OUTPUT[k]; 
-        number = k; 
+        max = SOFTMAX_OUTPUT[k];
+        number = (unsigned char)k;
       }
     }
-
-/**/    printf("\n\nPredicted: %d \t Actual: %d\n", labels_legend[number], label); 
     if (labels_legend[number] != label) error = error + 1; 
 
     xilinx_time = xilinx_end - xilinx_start; 
-
     if (xilinx_time < xilinx_time_min) xilinx_time_min = xilinx_time; 
     if (xilinx_time > xilinx_time_max) xilinx_time_max = xilinx_time; 
-
     xilinx_time_avg = xilinx_time_avg + xilinx_time; 
-    m++; 
 
+    m++; 
   } // END MAIN TEST LOOP
   gettimeofday(&end, NULL); 
 

@@ -88,4 +88,3 @@ void Fc2_400_10(	float 	input[FC1_NBOUTPUT], 			        // IN
 			        float 	output[FC2_NBOUTPUT]); 			        // OUT
 
 void Softmax(float vector_in[FC2_NBOUTPUT], float vector_out[FC2_NBOUTPUT]); 
-
